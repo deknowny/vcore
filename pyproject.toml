@@ -1,6 +1,6 @@
 [build-system]
-requires = ["poetry-core>=1.0.0"]
-build-backend = "poetry.core.masonry.api"
+requires = ["maturin>=0.12,<0.13"]
+build-backend = "maturin"
 
 [tool.poetry]
 name = "vcore"
@@ -37,9 +37,18 @@ mkdocs = {optional = true, version="^1.2.3"}
 mkdocs-material = {optional = true, version="^8.0.2"}
 mike = {optional = true, version="^1.1.2"}
 
+ujson = {version = "^5.1.0", optional = true}
+orjson = {version = "^3.6.7", optional = true}
+aiohttp = "^3.8.1"
+certifi = "^2021.10.8"
+ralisem = "^0.1.0"
+maturin = "^0.12.9"
+
+
 [tool.poetry.extras]
 # Ordinary extra dependencies
-all = []
+all = ["ujson", "orjson"]
+json-libs = ["usjon", "orjson"]
 
 # Development etra dependencies
 dev-style = ["black", "isort", "pre-commit", "autoflake"]
