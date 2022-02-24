@@ -10,7 +10,7 @@ enum ResponseState {
 }
 
 
-struct SerdeValueProxy<'a> {
+pub struct SerdeValueProxy<'a> {
     serde_value: &'a serde_json::Value
 }
 
@@ -52,26 +52,33 @@ pub struct APIResponse {
 }
 
 impl APIResponse {
-    fn new(content: serde_json::Value) -> Self {
+    pub fn new(content: serde_json::Value) -> Self {
+        // println!("{}", content);
+        let state = match content.get("response") {
+            Some(_) => ResponseState::Success,
+            None => ResponseState::Error
+        };
         APIResponse {
-            content: content,
-            state: match content.get("response") {
-                Some(_) => ResponseState::Success,
-                None => ResponseState::Error
-            }
+            content,
+            state
         }
     }
 }
 
 #[pymethods]
 impl APIResponse {
-    pub fn __getitem__(&self, fields_chain: &PyAny) -> PyResult<SerdeValueProxy> {
+    pub fn get(&self, fields_chain: &PyAny) -> PyResult<SerdeValueProxy> {
         let first_access_key = match self.state {
             ResponseState::Success => "response",
             ResponseState::Error => "error"
         };
         let mut current_value = &self.content[first_access_key];
-        let chain: Vec<&PyAny> = fields_chain.extract()?;
+        let chain_is_str = fields_chain.extract::<&str>();
+        let chain: Vec<&PyAny>;
+        match chain_is_str {
+            Ok(_) => { chain = vec![fields_chain]; },
+            Err(_) => { chain = fields_chain.extract::<Vec<&PyAny>>()?; }
+        }
         for step in chain {
             let convertion_to_str = step.extract::<&str>();
             match convertion_to_str {
