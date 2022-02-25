@@ -2,6 +2,8 @@ use pyo3::prelude::*;
 use serde_json;
 use std::collections::HashMap;
 
+use pyo3::exceptions::PyKeyError;
+
 
 
 enum ResponseState {
@@ -65,8 +67,15 @@ impl APIResponse {
     }
 }
 
+#[derive(Debug)]
+enum AccessEntity {
+    KeyAccess(String),
+    IndexAccess(usize)
+}
+
 #[pymethods]
 impl APIResponse {
+    #[args(fields_chain = "*")]
     pub fn get(&self, fields_chain: &PyAny) -> PyResult<SerdeValueProxy> {
         let first_access_key = match self.state {
             ResponseState::Success => "response",
@@ -81,12 +90,26 @@ impl APIResponse {
         }
         for step in chain {
             let convertion_to_str = step.extract::<&str>();
+            let new_current_value;
+            let accessor;
             match convertion_to_str {
-                PyResult::Ok(key) => current_value = &current_value[key],
+                PyResult::Ok(key) => {
+                    new_current_value = current_value.get(key);
+                    accessor = AccessEntity::KeyAccess(key.to_owned());
+                },
                 _ => {
                     let convertion_to_int: usize = step.extract()?;
-                    current_value = &current_value[convertion_to_int];
+                    new_current_value = current_value.get(convertion_to_int);
+                    accessor = AccessEntity::IndexAccess(convertion_to_int.to_owned());
                 }
+            }
+            match new_current_value {
+                Some(new_val) => current_value = &new_val,
+                None => return Err(
+                    PyKeyError::new_err(
+                        format!("No such key {:?}", accessor)
+                    )
+                )
             }
         }
         let proxied_serde = SerdeValueProxy {
