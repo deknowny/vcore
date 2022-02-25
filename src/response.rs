@@ -5,7 +5,6 @@ use std::collections::HashMap;
 use pyo3::exceptions::PyKeyError;
 
 
-
 enum ResponseState {
     Success,
     Error
