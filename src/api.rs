@@ -40,8 +40,21 @@ impl APIExecutor {
 
         if let Some(custom_params) = params {
             for pair in custom_params.items() {
-                let (key, value): (String, String) = pair.extract()?;
-                used_params.insert(key, value);
+                let (key, value): (String, &PyAny) = pair.extract()?;
+                let value_exists: Option<&PyAny> = value.extract()?;
+                if value_exists.is_some() {
+                    let value = match value.extract::<String>() {
+                        Ok(val) => val,
+                        Err(_) => match value.extract::<isize>() {
+                            Ok(val) => val.to_string(),
+                            Err(_) => match value.extract::<bool>() {
+                                Ok(val) => val.to_string(),
+                                Err(_) => panic!("Invalid argument type {}", value),
+                            }
+                        }
+                    };
+                    used_params.insert(key, value);
+                }
             }
         };
         pyo3_asyncio::tokio::into_coroutine(py, async move {
