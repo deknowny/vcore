@@ -1,8 +1,12 @@
-use pyo3::prelude::*;
-use serde_json;
 use std::collections::HashMap;
 
-use pyo3::exceptions::PyKeyError;
+use pyo3::prelude::*;
+use pyo3::create_exception;
+use pyo3::exceptions::{PyKeyError, PyException};
+use serde_json;
+
+
+create_exception!(vcore_ext, APIError, PyException);
 
 
 enum ResponseState {
@@ -82,11 +86,18 @@ impl APIResponse {
         matches!(self.state, ResponseState::Success)
     }
 
-    #[args(fields_chain = "*")]
-    pub fn get(&self, fields_chain: &PyAny) -> PyResult<SerdeValueProxy> {
+    #[args(fields_chain = "*", ignore_error = false)]
+    pub fn get(&self, fields_chain: &PyAny, ignore_error: bool) -> PyResult<SerdeValueProxy> {
         let first_access_key = match self.state {
             ResponseState::Success => "response",
-            ResponseState::Error => "error"
+            ResponseState::Error => {
+                if !ignore_error {
+                    return Err(APIError::new_err(
+                        format!("API error occured: {}", self.content["error"])
+                    ))
+                }
+                "error"
+            }
         };
         let mut current_value = &self.content[first_access_key];
         let chain_is_str = fields_chain.extract::<&str>();
@@ -128,7 +139,8 @@ impl APIResponse {
 
 
 #[pymodule]
-fn response(_py: Python, module: &PyModule) -> PyResult<()> {
+fn response(py: Python, module: &PyModule) -> PyResult<()> {
     module.add_class::<APIResponse>()?;
+    module.add("APIError", py.get_type::<APIError>())?;
     Ok(())
 }
