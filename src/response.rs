@@ -74,6 +74,14 @@ enum AccessEntity {
 
 #[pymethods]
 impl APIResponse {
+    pub fn is_error(&self) -> bool {
+        matches!(self.state, ResponseState::Error)
+    }
+
+    pub fn is_successful(&self) -> bool {
+        matches!(self.state, ResponseState::Success)
+    }
+
     #[args(fields_chain = "*")]
     pub fn get(&self, fields_chain: &PyAny) -> PyResult<SerdeValueProxy> {
         let first_access_key = match self.state {
