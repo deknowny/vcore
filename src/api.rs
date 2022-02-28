@@ -57,6 +57,7 @@ impl APIExecutor {
                 }
             }
         };
+        println!("{:?}", used_params);
         pyo3_asyncio::tokio::into_coroutine(py, async move {
             let response = client.post(
                 format!("https://api.vk.com/method/{}", method_name),
