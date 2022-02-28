@@ -16,6 +16,33 @@ struct APIExecutor {
     client: reqwest::Client
 }
 
+
+// Rust only methods
+// idk lol how do it prettier, PRs are welcome
+impl APIExecutor {
+    fn cast_param_value(&self, value: &PyAny) -> String {
+        match value.extract::<String>() {
+            Ok(val) => val,
+            Err(_) => match value.extract::<isize>() {
+                Ok(val) => val.to_string(),
+                Err(_) => match value.extract::<bool>() {
+                    Ok(val) => val.to_string(),
+                    Err(_) => match value.extract::<Vec<&PyAny>>() {
+                        Ok(val) => {
+                            let mut params_array = vec![];
+                            for elem in val {
+                                params_array.push(self.cast_param_value(elem));
+                            }
+                            params_array.join(",")
+                        },
+                        Err(_) => panic!("Invalid argument type {}", value),
+                    },
+                }
+            }
+        }
+    }
+}
+
 #[pymethods]
 impl APIExecutor {
     #[new]
@@ -43,21 +70,12 @@ impl APIExecutor {
                 let (key, value): (String, &PyAny) = pair.extract()?;
                 let value_exists: Option<&PyAny> = value.extract()?;
                 if value_exists.is_some() {
-                    let value = match value.extract::<String>() {
-                        Ok(val) => val,
-                        Err(_) => match value.extract::<isize>() {
-                            Ok(val) => val.to_string(),
-                            Err(_) => match value.extract::<bool>() {
-                                Ok(val) => val.to_string(),
-                                Err(_) => panic!("Invalid argument type {}", value),
-                            }
-                        }
-                    };
-                    used_params.insert(key, value);
+                    let suuported_value_view = self.cast_param_value(value);
+                    used_params.insert(key, suuported_value_view);
                 }
             }
         };
-        println!("{:?}", used_params);
+        // println!("{:?}", used_params);
         pyo3_asyncio::tokio::into_coroutine(py, async move {
             let response = client.post(
                 format!("https://api.vk.com/method/{}", method_name),
