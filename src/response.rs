@@ -78,7 +78,7 @@ impl APIResponse {
         matches!(self.state, ResponseState::Error)
     }
 
-    pub fn is_successful(&self) -> bool {
+    pub fn is_success(&self) -> bool {
         matches!(self.state, ResponseState::Success)
     }
 
