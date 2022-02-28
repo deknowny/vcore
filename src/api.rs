@@ -41,6 +41,20 @@ impl APIExecutor {
             }
         }
     }
+
+    fn extract_params(&self, used_params: &mut HashMap<String, String>, py_params: Option<&PyDict>) {
+        if let Some(custom_params) = py_params {
+            for pair in custom_params.items() {
+                // First and second unwrap never gonna fall
+                let (key, value): (String, &PyAny) = pair.extract().unwrap();
+                let value_exists: Option<&PyAny> = value.extract().unwrap();
+                if value_exists.is_some() {
+                    let suuported_value_view = self.cast_param_value(value);
+                    used_params.insert(key, suuported_value_view);
+                }
+            }
+        };
+    }
 }
 
 #[pymethods]
@@ -64,17 +78,8 @@ impl APIExecutor {
             ("access_token".to_owned(), token.clone()),
             ("v".to_owned(), "5.131".to_owned())
         ]);
+        self.extract_params(&mut used_params, params);
 
-        if let Some(custom_params) = params {
-            for pair in custom_params.items() {
-                let (key, value): (String, &PyAny) = pair.extract()?;
-                let value_exists: Option<&PyAny> = value.extract()?;
-                if value_exists.is_some() {
-                    let suuported_value_view = self.cast_param_value(value);
-                    used_params.insert(key, suuported_value_view);
-                }
-            }
-        };
         // println!("{:?}", used_params);
         pyo3_asyncio::tokio::into_coroutine(py, async move {
             let response = client.post(
