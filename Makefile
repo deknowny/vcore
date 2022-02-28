@@ -68,3 +68,7 @@ deploy-docs:
 # Run mypy checking
 check:
 	$(poetry_exec) run mypy
+
+
+debug:
+	$(poetry_exec) run maturin develop && $(poetry_exec) run .drafts/some.py
