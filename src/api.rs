@@ -2,8 +2,6 @@ use std::collections::HashMap;
 
 use pyo3::prelude::*;
 use pyo3::types::PyDict;
-use pyo3::create_exception;
-use pyo3::exceptions::PyException;
 use pyo3_asyncio;
 use reqwest;
 
