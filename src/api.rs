@@ -8,7 +8,6 @@ use reqwest;
 use crate::response::APIResponse;
 
 
-
 #[pyclass(module = "vcore_ext.api")]
 struct APIExecutor {
     #[pyo3(get)]
